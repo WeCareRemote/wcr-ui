@@ -1,0 +1,96 @@
+<div class="icons">
+  <header class="page-header">
+    <p class="eyebrow">Iconography</p>
+    <h1>Icon set</h1>
+    <p class="subheading">All WCR icons from the main app. Nothing missing.</p>
+  </header>
+
+  <div class="icons-layout">
+    <section class="icons__grid">
+      <button
+        class="icon-card"
+        *ngFor="let icon of icons"
+        (click)="selectIcon(icon)"
+        [class.active]="selectedIcon?.selector === icon.selector"
+      >
+        <div class="icon-card__glyph" [innerHTML]="safeSvg(icon.svg)"></div>
+        <p>{{ icon.name }}</p>
+        <span class="selector">{{ icon.selector }}</span>
+      </button>
+    </section>
+
+    <div class="icon-panel icon-panel--bottom" *ngIf="selectedIcon">
+      <header class="icon-panel__header">
+        <div>
+          <p class="eyebrow">Icon</p>
+          <h2>{{ selectedIcon.name }}</h2>
+          <span class="selector">{{ selectedIcon.selector }}</span>
+        </div>
+      </header>
+
+      <div class="icon-preview">
+        <div
+          class="icon-preview__canvas"
+          [style.width.px]="selectedSize"
+          [style.height.px]="selectedSize"
+          [style.color]="selectedColor"
+          [style.--stroke-width]="selectedStrokeWidth"
+          [innerHTML]="safeSvg(selectedIcon.svg)"
+        ></div>
+      </div>
+
+      <div class="icon-tabs">
+        <button [class.active]="activeTab === 'controls'" (click)="activeTab = 'controls'">Controls</button>
+        <button [class.active]="activeTab === 'actions'" (click)="activeTab = 'actions'">Actions</button>
+        <button [class.active]="activeTab === 'interactions'" (click)="activeTab = 'interactions'">Interactions</button>
+        <button [class.active]="activeTab === 'docs'" (click)="activeTab = 'docs'">Docs</button>
+      </div>
+
+      <section class="icon-controls" *ngIf="activeTab === 'controls'">
+        <div class="controls-row header">
+          <span>Name</span>
+          <span>Control</span>
+        </div>
+        <div class="controls-row">
+          <span>size</span>
+          <select [(ngModel)]="selectedSize">
+            <option *ngFor="let size of sizeOptions" [ngValue]="size">{{ size }}px</option>
+          </select>
+        </div>
+        <div class="controls-row">
+          <span>color</span>
+          <input type="color" [(ngModel)]="selectedColor" />
+        </div>
+        <div class="controls-row">
+          <span>strokeWidth</span>
+          <input type="number" min="0.5" step="0.5" [(ngModel)]="selectedStrokeWidth" />
+        </div>
+      </section>
+
+      <section class="icon-panel__placeholder" *ngIf="activeTab !== 'controls'">
+        <p>Content for {{ activeTab }} will appear here.</p>
+      </section>
+
+      <section class="icon-snippet">
+        <div class="icon-snippet__header">
+          <p class="eyebrow">SVG</p>
+          <div class="icon-snippet__actions">
+            <button class="icon-btn" type="button" (click)="copySvg()" aria-label="Copy SVG">
+              <svg viewBox="0 0 24 24" fill="none">
+                <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+                <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </button>
+            <button class="icon-btn" type="button" (click)="downloadSvg()" aria-label="Download SVG">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 3v10m0 0l4-4m-4 4l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M5 17v3h14v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <pre [textContent]="renderedSvg"></pre>
+      </section>
+    </div>
+  </div>
+</div>

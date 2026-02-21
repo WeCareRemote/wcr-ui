@@ -1,0 +1,43 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">WCR</div>
+      <div>
+        <p class="title">WCR UI</p>
+        <span class="subtitle">Component studio</span>
+      </div>
+    </div>
+
+    <div class="sidebar-search">
+      <span>⌕</span>
+      <input placeholder="Find components" />
+    </div>
+
+    <nav class="nav">
+      <p class="nav-section">Design System</p>
+      <a routerLink="/components" routerLinkActive="active">Components</a>
+      <a routerLink="/tokens" routerLinkActive="active">Tokens</a>
+      <a routerLink="/icons" routerLinkActive="active">Icons</a>
+      <a routerLink="/layouts" routerLinkActive="active">Layouts</a>
+    </nav>
+
+    <div class="sidebar__footer">
+      <p class="eyebrow">Version</p>
+      <p class="meta">v0.1 • Angular 17</p>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <div class="toolbar">
+        <button class="toolbar-btn">⚙</button>
+        <button class="toolbar-btn">⟲</button>
+        <button class="toolbar-btn">⋯</button>
+      </div>
+    </header>
+
+    <section class="page">
+      <router-outlet></router-outlet>
+    </section>
+  </main>
+</div>

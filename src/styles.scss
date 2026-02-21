@@ -1,0 +1,19 @@
+@import './styles/wcr/variables';
+@import './styles/wcr/button';
+@import './styles/wcr/tabs';
+@import './styles/wcr/modal';
+@import './styles/wcr/form';
+@import './styles/wcr/dropdown';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f6f7f9;
+  color: #0f172a;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}

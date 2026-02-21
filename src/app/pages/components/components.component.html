@@ -1,0 +1,205 @@
+<div class="components">
+  <header class="components-header">
+    <div>
+      <p class="eyebrow">Design System</p>
+      <h1>Components</h1>
+      <p class="subheading">Browse components or inspect detailed registry metadata.</p>
+    </div>
+    <div class="mode-toggle">
+      <button [class.active]="viewMode === 'gallery'" (click)="viewMode = 'gallery'">Gallery</button>
+      <button [class.active]="viewMode === 'registry'" (click)="viewMode = 'registry'">Registry</button>
+    </div>
+  </header>
+
+  <section *ngIf="viewMode === 'gallery'" class="gallery">
+    <article class="panel">
+      <header>
+        <h3>Buttons</h3>
+        <span class="badge">Primary / Neutral / Subtle</span>
+      </header>
+      <div class="row wrap">
+        <button class="primary">Primary</button>
+        <button class="secondary">Neutral</button>
+        <button class="ghost">Subtle</button>
+        <button class="ghost" disabled>Disabled</button>
+      </div>
+    </article>
+
+    <article class="panel">
+      <header>
+        <h3>Inputs</h3>
+        <span class="badge">Text / Search</span>
+      </header>
+      <div class="stack">
+        <label>
+          <span>Email</span>
+          <input placeholder="you@company.com" />
+        </label>
+        <label>
+          <span>Search</span>
+          <input placeholder="Search components" />
+        </label>
+      </div>
+    </article>
+
+    <article class="panel">
+      <header>
+        <h3>Tabs</h3>
+        <span class="badge">Navigation</span>
+      </header>
+      <div class="tabs">
+        <div class="tabs__titles">
+          <span class="tabs__title tabs__title--active">Overview</span>
+          <span class="tabs__title">Usage</span>
+          <span class="tabs__title">Design</span>
+        </div>
+        <div class="tabs__content">
+          <div class="tabs__panel">Tab content preview</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <header>
+        <h3>Cards</h3>
+        <span class="badge">Elevated</span>
+      </header>
+      <div class="card">
+        <p class="eyebrow">Spotlight</p>
+        <h4>Launch plan</h4>
+        <p>Deliver the new onboarding flow with a refined brand tone.</p>
+        <div class="card__footer">
+          <span class="pill info">Design</span>
+          <button class="ghost small">View</button>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <header>
+        <h3>Table</h3>
+        <span class="badge">Compact</span>
+      </header>
+      <table>
+        <thead>
+          <tr>
+            <th>Workspace</th>
+            <th>Status</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Nova</td>
+            <td><span class="pill success">Active</span></td>
+            <td>Julian</td>
+          </tr>
+          <tr>
+            <td>Aurora</td>
+            <td><span class="pill warning">Paused</span></td>
+            <td>Mira</td>
+          </tr>
+          <tr>
+            <td>Pulse</td>
+            <td><span class="pill info">Planning</span></td>
+            <td>Rosa</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+  </section>
+
+  <section *ngIf="viewMode === 'registry'" class="storybook">
+    <aside class="storybook__nav">
+      <div class="nav-search">
+        <span>⌕</span>
+        <input [(ngModel)]="searchQuery" placeholder="Find components" />
+      </div>
+
+      <div class="nav-tree">
+        <p class="nav-section">All Components</p>
+        <div class="nav-group" *ngFor="let entry of filteredComponents">
+          <button
+            class="nav-item"
+            [class.active]="selectedId === entry.selector"
+            (click)="selectedId = entry.selector"
+          >
+            <span class="title">{{ entry.selector }}</span>
+            <span class="selector">{{ entry.path }}</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <section class="storybook__content">
+      <header class="story-header">
+        <div>
+          <p class="eyebrow">Component</p>
+          <h1>{{ selectedComponent.selector }}</h1>
+          <p class="subheading">Class: {{ selectedComponent.className }}</p>
+          <p class="meta">Path: {{ selectedComponent.path }}</p>
+        </div>
+        <div class="story-actions">
+          <button class="ghost">Docs</button>
+          <button class="primary">Canvas</button>
+        </div>
+      </header>
+
+      <div class="story-preview">
+        <div class="preview-toolbar">
+          <button>⤢</button>
+          <button>⟲</button>
+          <button>⋯</button>
+        </div>
+        <div class="preview-canvas">
+          <div class="preview-placeholder">
+            <p>Preview placeholder</p>
+            <span>This component requires its full app context to render.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="story-tabs">
+        <button [class.active]="activeTab === 'controls'" (click)="activeTab = 'controls'">Controls</button>
+        <button [class.active]="activeTab === 'actions'" (click)="activeTab = 'actions'">Actions</button>
+        <button [class.active]="activeTab === 'interactions'" (click)="activeTab = 'interactions'">
+          Interactions
+        </button>
+        <button [class.active]="activeTab === 'docs'" (click)="activeTab = 'docs'">Docs</button>
+      </div>
+
+      <div class="controls" *ngIf="activeTab === 'controls'">
+        <div class="controls-table">
+          <div class="controls-row header">
+            <span>Name</span>
+            <span>Type</span>
+            <span>Default</span>
+            <span>Control</span>
+          </div>
+          <ng-container *ngIf="hasControls; else emptyControls">
+            <div class="controls-row" *ngFor="let control of controls">
+              <span class="name">{{ control.name }}</span>
+              <span class="desc">{{ control.type }}</span>
+              <span class="default">{{ control.defaultValue }}</span>
+              <span class="control">
+                <button class="pill neutral">Set value</button>
+              </span>
+            </div>
+          </ng-container>
+        </div>
+        <ng-template #emptyControls>
+          <div class="controls-empty">No inputs detected for this component.</div>
+        </ng-template>
+      </div>
+
+      <div class="panel-placeholder" *ngIf="activeTab !== 'controls'">
+        <p>Content for {{ activeTab }} will appear here.</p>
+      </div>
+
+      <div class="snippet">
+        <p class="eyebrow">Template Snippet</p>
+        <pre [textContent]="selectedComponent.snippet || 'template unavailable'"></pre>
+      </div>
+    </section>
+  </section>
+</div>
