@@ -13,13 +13,22 @@ import { ICON_REGISTRY, IconRegistryItem } from './icons.registry';
 })
 export class IconsComponent {
   icons: IconRegistryItem[] = ICON_REGISTRY;
-  selectedIcon: IconRegistryItem | null = this.icons[0] ?? null;
+  selectedIcon: IconRegistryItem | null = null;
   activeTab: 'controls' | 'actions' | 'interactions' | 'docs' = 'controls';
+  panelOpen = true;
+  panelHeight = 360;
+  private resizeStartY = 0;
+  private resizeStartHeight = 0;
+  private readonly minPanelHeight = 220;
+  private readonly maxPanelHeight = 680;
+  private readonly handleResizeMove = (event: PointerEvent) => this.onResizeMove(event);
+  private readonly handleResizeEnd = () => this.onResizeEnd();
 
   sizeOptions = [16, 20, 24, 28, 32, 40, 48, 56];
   selectedSize = 32;
   selectedColor = '#111827';
   selectedStrokeWidth = 2;
+  searchQuery = '';
 
   constructor(private readonly sanitizer: DomSanitizer) {}
 
@@ -29,44 +38,71 @@ export class IconsComponent {
 
   selectIcon(icon: IconRegistryItem): void {
     this.selectedIcon = icon;
+    this.panelOpen = true;
+  }
+
+  closePanel(): void {
+    this.panelOpen = false;
+  }
+
+  get filteredIcons(): IconRegistryItem[] {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) return this.icons;
+    return this.icons.filter(
+      (icon) =>
+        icon.name.toLowerCase().includes(query) ||
+        icon.selector.toLowerCase().includes(query)
+    );
+  }
+
+  onResizeStart(event: PointerEvent): void {
+    this.resizeStartY = event.clientY;
+    this.resizeStartHeight = this.panelHeight;
+    window.addEventListener('pointermove', this.handleResizeMove);
+    window.addEventListener('pointerup', this.handleResizeEnd);
+  }
+
+  private onResizeMove(event: PointerEvent): void {
+    const delta = this.resizeStartY - event.clientY;
+    const nextHeight = this.resizeStartHeight + delta;
+    this.panelHeight = Math.min(this.maxPanelHeight, Math.max(this.minPanelHeight, nextHeight));
+  }
+
+  private onResizeEnd(): void {
+    window.removeEventListener('pointermove', this.handleResizeMove);
+    window.removeEventListener('pointerup', this.handleResizeEnd);
   }
 
   get renderedSvg(): string {
     if (!this.selectedIcon) return '';
-    let svg = this.selectedIcon.svg;
-    if (svg.match(/<svg[^>]*\\bwidth=\\\"/i)) {
-      svg = svg.replace(/width=\\\"[^\\\"]+\\\"/i, `width=\"${this.selectedSize}\"`);
-    } else {
-      svg = svg.replace(/<svg/i, `<svg width=\"${this.selectedSize}\"`);
-    }
-    if (svg.match(/<svg[^>]*\\bheight=\\\"/i)) {
-      svg = svg.replace(/height=\\\"[^\\\"]+\\\"/i, `height=\"${this.selectedSize}\"`);
-    } else {
-      svg = svg.replace(/<svg/i, `<svg height=\"${this.selectedSize}\"`);
-    }
-    svg = svg.replace(/stroke=(['\"])currentColor\\1/g, `stroke=\"${this.selectedColor}\"`);
-    svg = svg.replace(/fill=(['\"])currentColor\\1/g, `fill=\"${this.selectedColor}\"`);
-    svg = svg.replace(/fill=(['\"])([^'\"]+)\\1/gi, (match, quote, value) => {
-      const normalized = value.trim().toLowerCase();
-      if (normalized === 'none' || normalized.startsWith('url(')) return match;
-      return `fill=\"${this.selectedColor}\"`;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(this.selectedIcon.svg, 'image/svg+xml');
+    const svgEl = doc.querySelector('svg');
+    if (!svgEl) return this.selectedIcon.svg;
+
+    svgEl.setAttribute('width', `${this.selectedSize}`);
+    svgEl.setAttribute('height', `${this.selectedSize}`);
+    svgEl.setAttribute('style', `color:${this.selectedColor}`);
+    svgEl.setAttribute('fill', this.selectedColor);
+    svgEl.setAttribute('stroke', this.selectedColor);
+
+    doc.querySelectorAll('[fill]').forEach((node) => {
+      const value = (node.getAttribute('fill') || '').trim().toLowerCase();
+      if (value === 'none' || value.startsWith('url(')) return;
+      node.setAttribute('fill', this.selectedColor);
     });
-    svg = svg.replace(/stroke=(['\"])([^'\"]+)\\1/gi, (match, quote, value) => {
-      const normalized = value.trim().toLowerCase();
-      if (normalized === 'none' || normalized.startsWith('url(')) return match;
-      return `stroke=\"${this.selectedColor}\"`;
+
+    doc.querySelectorAll('[stroke]').forEach((node) => {
+      const value = (node.getAttribute('stroke') || '').trim().toLowerCase();
+      if (value === 'none' || value.startsWith('url(')) return;
+      node.setAttribute('stroke', this.selectedColor);
     });
-    const svgTagMatch = svg.match(/<svg[^>]*>/i);
-    if (svgTagMatch) {
-      const svgTag = svgTagMatch[0];
-      const withStyle = svgTag.replace(
-        /<svg/i,
-        `<svg style=\"color:${this.selectedColor}\"`
-      );
-      svg = svg.replace(svgTag, withStyle);
-    }
-    svg = svg.replace(/stroke-width=(['\"])\\d*\\.?\\d+\\1/g, `stroke-width=\"${this.selectedStrokeWidth}\"`);
-    return svg;
+
+    doc.querySelectorAll('[stroke-width]').forEach((node) => {
+      node.setAttribute('stroke-width', `${this.selectedStrokeWidth}`);
+    });
+
+    return new XMLSerializer().serializeToString(svgEl);
   }
 
   async copySvg(): Promise<void> {

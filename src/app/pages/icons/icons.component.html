@@ -1,31 +1,57 @@
 <div class="icons">
   <header class="page-header">
-    <p class="eyebrow">Iconography</p>
-    <h1>Icon set</h1>
-    <p class="subheading">All WCR icons from the main app. Nothing missing.</p>
+    <div>
+      <p class="eyebrow">Iconography</p>
+      <h1>Icon set</h1>
+      <p class="subheading">All WCR icons from the main app. Nothing missing.</p>
+    </div>
   </header>
+
+  <div class="icons-toolbar">
+    <label class="search-input">
+      <span>⌕</span>
+      <input [(ngModel)]="searchQuery" placeholder="Search icons, selectors" />
+    </label>
+  </div>
 
   <div class="icons-layout">
     <section class="icons__grid">
-      <button
+      <div
         class="icon-card"
-        *ngFor="let icon of icons"
-        (click)="selectIcon(icon)"
+        *ngFor="let icon of filteredIcons"
         [class.active]="selectedIcon?.selector === icon.selector"
       >
         <div class="icon-card__glyph" [innerHTML]="safeSvg(icon.svg)"></div>
         <p>{{ icon.name }}</p>
         <span class="selector">{{ icon.selector }}</span>
-      </button>
+        <button class="icon-card__action" type="button" (click)="selectIcon(icon)" aria-label="Open properties">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 7h16M4 12h10M4 17h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
     </section>
 
-    <div class="icon-panel icon-panel--bottom" *ngIf="selectedIcon">
+    <div
+      class="icon-panel icon-panel--bottom"
+      *ngIf="selectedIcon"
+      [class.is-collapsed]="!panelOpen"
+      [style.--panel-height]="panelHeight + 'px'"
+    >
+      <button class="icon-panel__grab" type="button" (pointerdown)="onResizeStart($event)" aria-label="Resize panel">
+        <span></span>
+      </button>
       <header class="icon-panel__header">
         <div>
           <p class="eyebrow">Icon</p>
           <h2>{{ selectedIcon.name }}</h2>
           <span class="selector">{{ selectedIcon.selector }}</span>
         </div>
+        <button class="icon-panel__close" type="button" (click)="closePanel()" aria-label="Close panel">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
       </header>
 
       <div class="icon-preview">

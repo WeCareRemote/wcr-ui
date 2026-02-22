@@ -1,68 +1,211 @@
 <div class="layouts">
   <header class="page-header">
-    <p class="eyebrow">Layouts</p>
-    <h1>Page compositions</h1>
-    <p class="subheading">Reusable layout patterns for dashboards, marketing, and settings.</p>
+    <div>
+      <p class="eyebrow">Layouts</p>
+      <h1>Page compositions</h1>
+      <p class="subheading">Real layout patterns sourced from WCR pages.</p>
+    </div>
+    <div class="stat">
+      <p class="label">Total layouts</p>
+      <h3>{{ totalLayouts }}</h3>
+    </div>
   </header>
 
-  <section class="layout-grid">
-    <article class="layout-card">
-      <div class="layout-card__header">
-        <h3>Hero + Metrics</h3>
-        <span class="badge">Landing</span>
-      </div>
-      <div class="hero-sample">
-        <div>
-          <p class="eyebrow">Launch</p>
-          <h4>Elevate your onboarding</h4>
-          <p class="muted">Create instant clarity for every new user.</p>
-        </div>
-        <div class="metric-stack">
-          <div>
-            <span class="muted">Activation</span>
-            <strong>72%</strong>
-          </div>
-          <div>
-            <span class="muted">Retention</span>
-            <strong>91%</strong>
-          </div>
-        </div>
-      </div>
-    </article>
+  <div class="layouts-toolbar">
+    <label class="search-input">
+      <span>⌕</span>
+      <input [(ngModel)]="searchQuery" placeholder="Search layouts, tags, categories" />
+    </label>
 
-    <article class="layout-card">
-      <div class="layout-card__header">
-        <h3>Settings split</h3>
-        <span class="badge">Product</span>
+    <div class="filters">
+      <button
+        *ngFor="let category of categories"
+        type="button"
+        class="filter-chip"
+        [class.active]="activeCategory === category.id"
+        (click)="activeCategory = category.id"
+      >
+        {{ category.label }}
+      </button>
+    </div>
+
+    <div class="toolbar-actions">
+      <div class="view-toggle">
+        <button type="button" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'">Grid</button>
+        <button type="button" [class.active]="viewMode === 'table'" (click)="viewMode = 'table'">Table</button>
       </div>
-      <div class="split-sample">
-        <aside>
-          <span class="pill neutral">Profile</span>
-          <span class="pill neutral">Preferences</span>
-          <span class="pill neutral">Security</span>
-        </aside>
-        <div class="content-block">
-          <h4>Profile details</h4>
-          <p class="muted">Update your contact information and avatar.</p>
-          <div class="form-row"></div>
-          <div class="form-row small"></div>
+      <button class="primary-btn" type="button" (click)="downloadLayouts()">Download JSON</button>
+    </div>
+  </div>
+
+  <section *ngIf="viewMode === 'grid'" class="layout-grid">
+    <article class="layout-card" *ngFor="let layout of filteredLayouts">
+      <div class="layout-card__header">
+        <h3>{{ layout.title }}</h3>
+        <span class="badge">{{ layout.category }}</span>
+      </div>
+
+      <div class="layout-preview" [ngSwitch]="layout.preview">
+        <div *ngSwitchCase="'projects-grid'" class="projects-grid">
+          <div class="grid-row">
+            <div class="grid-card tall"></div>
+            <div class="grid-card"></div>
+            <div class="grid-card"></div>
+          </div>
+          <div class="grid-row">
+            <div class="grid-card wide"></div>
+          </div>
+        </div>
+
+        <div *ngSwitchCase="'settings'" class="settings-sample">
+          <aside>
+            <span class="pill neutral">General</span>
+            <span class="pill neutral">Organization</span>
+            <span class="pill neutral">Notifications</span>
+          </aside>
+          <div class="content-block">
+            <h4>Settings</h4>
+            <p class="muted">Select a section to edit</p>
+            <div class="form-row"></div>
+            <div class="form-row small"></div>
+          </div>
+        </div>
+
+        <div *ngSwitchCase="'org-profile'" class="org-profile">
+          <div class="org-hero">
+            <div>
+              <p class="eyebrow">Organization</p>
+              <h4>Impact through care</h4>
+              <p class="muted">About this organization</p>
+            </div>
+            <div class="org-cta"></div>
+          </div>
+          <div class="org-section"></div>
+          <div class="org-section small"></div>
+        </div>
+
+        <div *ngSwitchCase="'masonry'" class="masonry-sample">
+          <div class="masonry-col">
+            <div class="masonry-card tall"></div>
+            <div class="masonry-card"></div>
+          </div>
+          <div class="masonry-col">
+            <div class="masonry-card"></div>
+            <div class="masonry-card tall"></div>
+          </div>
+          <div class="masonry-col">
+            <div class="masonry-card"></div>
+            <div class="masonry-card"></div>
+          </div>
+        </div>
+
+        <div *ngSwitchCase="'info-cards'" class="info-cards">
+          <div class="info-grid">
+            <div class="info-card"></div>
+            <div class="info-card"></div>
+            <div class="info-card wide"></div>
+          </div>
+          <div class="skills-grid">
+            <div class="skill-chip"></div>
+            <div class="skill-chip"></div>
+            <div class="skill-chip"></div>
+          </div>
         </div>
       </div>
-    </article>
 
-    <article class="layout-card">
-      <div class="layout-card__header">
-        <h3>Cards grid</h3>
-        <span class="badge">Dashboard</span>
+      <p class="layout-description">{{ layout.description }}</p>
+
+      <div class="layout-tags">
+        <span class="tag" *ngFor="let tag of layout.tags">{{ tag }}</span>
       </div>
-      <div class="cards-grid">
-        <div class="mini-card"></div>
-        <div class="mini-card"></div>
-        <div class="mini-card"></div>
-        <div class="mini-card wide"></div>
+
+      <div class="layout-actions">
+        <button class="icon-btn" type="button" (click)="copySnippet(layout)" aria-label="Copy snippet">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" (click)="copyCssToken(layout)" aria-label="Copy CSS token">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" (click)="openPanel(layout)" aria-label="Open properties">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 7h16M4 12h10M4 17h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
     </article>
   </section>
+
+  <section *ngIf="viewMode === 'table'" class="layout-table">
+    <div class="layout-row layout-row--header">
+      <span>Layout</span>
+      <span>Category</span>
+      <span>Description</span>
+      <span>Actions</span>
+    </div>
+    <div class="layout-row" *ngFor="let layout of filteredLayouts">
+      <span class="title">{{ layout.title }}</span>
+      <span class="muted">{{ layout.category }}</span>
+      <span class="muted">{{ layout.description }}</span>
+      <div class="layout-actions">
+        <button class="icon-btn" type="button" (click)="copySnippet(layout)" aria-label="Copy snippet">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" (click)="copyCssToken(layout)" aria-label="Copy CSS token">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" (click)="openPanel(layout)" aria-label="Open properties">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 7h16M4 12h10M4 17h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="layout-panel" *ngIf="selectedLayout" [class.is-open]="panelOpen">
+    <header>
+      <div>
+        <p class="eyebrow">Layout</p>
+        <h3>{{ selectedLayout.title }}</h3>
+        <p class="muted">{{ selectedLayout.description }}</p>
+      </div>
+      <button class="icon-btn" type="button" (click)="closePanel()" aria-label="Close panel">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="layout-panel__meta">
+      <span class="badge">{{ selectedLayout.category }}</span>
+      <span class="tag" *ngFor="let tag of selectedLayout.tags">{{ tag }}</span>
+    </div>
+
+    <div class="layout-panel__snippet">
+      <div class="snippet-header">
+        <p class="eyebrow">Snippet</p>
+        <button class="icon-btn" type="button" (click)="copySnippet(selectedLayout)" aria-label="Copy snippet">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+      </div>
+      <pre [textContent]="selectedLayout.snippet"></pre>
+    </div>
+  </section>
+
+  <div class="layouts-toast" *ngIf="toastMessage">
+    <span>{{ toastMessage }}</span>
+  </div>
 </div>
-
-

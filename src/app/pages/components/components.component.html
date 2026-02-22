@@ -3,203 +3,101 @@
     <div>
       <p class="eyebrow">Design System</p>
       <h1>Components</h1>
-      <p class="subheading">Browse components or inspect detailed registry metadata.</p>
-    </div>
-    <div class="mode-toggle">
-      <button [class.active]="viewMode === 'gallery'" (click)="viewMode = 'gallery'">Gallery</button>
-      <button [class.active]="viewMode === 'registry'" (click)="viewMode = 'registry'">Registry</button>
+      <p class="subheading">Real UI kit components from WCR (focused set).</p>
     </div>
   </header>
 
-  <section *ngIf="viewMode === 'gallery'" class="gallery">
-    <article class="panel">
-      <header>
-        <h3>Buttons</h3>
-        <span class="badge">Primary / Neutral / Subtle</span>
-      </header>
-      <div class="row wrap">
-        <button class="primary">Primary</button>
-        <button class="secondary">Neutral</button>
-        <button class="ghost">Subtle</button>
-        <button class="ghost" disabled>Disabled</button>
-      </div>
-    </article>
-
-    <article class="panel">
-      <header>
-        <h3>Inputs</h3>
-        <span class="badge">Text / Search</span>
-      </header>
-      <div class="stack">
-        <label>
-          <span>Email</span>
-          <input placeholder="you@company.com" />
-        </label>
-        <label>
-          <span>Search</span>
-          <input placeholder="Search components" />
-        </label>
-      </div>
-    </article>
-
-    <article class="panel">
-      <header>
-        <h3>Tabs</h3>
-        <span class="badge">Navigation</span>
-      </header>
-      <div class="tabs">
-        <div class="tabs__titles">
-          <span class="tabs__title tabs__title--active">Overview</span>
-          <span class="tabs__title">Usage</span>
-          <span class="tabs__title">Design</span>
-        </div>
-        <div class="tabs__content">
-          <div class="tabs__panel">Tab content preview</div>
-        </div>
-      </div>
-    </article>
-
-    <article class="panel">
-      <header>
-        <h3>Cards</h3>
-        <span class="badge">Elevated</span>
-      </header>
-      <div class="card">
-        <p class="eyebrow">Spotlight</p>
-        <h4>Launch plan</h4>
-        <p>Deliver the new onboarding flow with a refined brand tone.</p>
-        <div class="card__footer">
-          <span class="pill info">Design</span>
-          <button class="ghost small">View</button>
-        </div>
-      </div>
-    </article>
-
-    <article class="panel">
-      <header>
-        <h3>Table</h3>
-        <span class="badge">Compact</span>
-      </header>
-      <table>
-        <thead>
-          <tr>
-            <th>Workspace</th>
-            <th>Status</th>
-            <th>Owner</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Nova</td>
-            <td><span class="pill success">Active</span></td>
-            <td>Julian</td>
-          </tr>
-          <tr>
-            <td>Aurora</td>
-            <td><span class="pill warning">Paused</span></td>
-            <td>Mira</td>
-          </tr>
-          <tr>
-            <td>Pulse</td>
-            <td><span class="pill info">Planning</span></td>
-            <td>Rosa</td>
-          </tr>
-        </tbody>
-      </table>
-    </article>
-  </section>
-
-  <section *ngIf="viewMode === 'registry'" class="storybook">
+  <div class="storybook">
     <aside class="storybook__nav">
       <div class="nav-search">
         <span>⌕</span>
         <input [(ngModel)]="searchQuery" placeholder="Find components" />
       </div>
-
-      <div class="nav-tree">
-        <p class="nav-section">All Components</p>
-        <div class="nav-group" *ngFor="let entry of filteredComponents">
-          <button
-            class="nav-item"
-            [class.active]="selectedId === entry.selector"
-            (click)="selectedId = entry.selector"
-          >
-            <span class="title">{{ entry.selector }}</span>
-            <span class="selector">{{ entry.path }}</span>
-          </button>
-        </div>
-      </div>
+      <p class="nav-section">Core components</p>
+      <button
+        class="nav-item"
+        *ngFor="let item of filteredItems"
+        [class.active]="selectedId === item.id"
+        (click)="selectedId = item.id"
+      >
+        <span class="title">{{ item.title }}</span>
+        <span class="selector">{{ item.tags[0] }}</span>
+      </button>
     </aside>
 
     <section class="storybook__content">
       <header class="story-header">
         <div>
           <p class="eyebrow">Component</p>
-          <h1>{{ selectedComponent.selector }}</h1>
-          <p class="subheading">Class: {{ selectedComponent.className }}</p>
-          <p class="meta">Path: {{ selectedComponent.path }}</p>
+          <h1>{{ selected.title }}</h1>
+          <p class="subheading">{{ selected.description }}</p>
         </div>
         <div class="story-actions">
-          <button class="ghost">Docs</button>
-          <button class="primary">Canvas</button>
+          <button class="ghost" type="button" (click)="copySnippet(selected)">Copy snippet</button>
+          <button class="primary" type="button" (click)="copyToken(selected)">Copy token</button>
         </div>
       </header>
 
       <div class="story-preview">
         <div class="preview-toolbar">
-          <button>⤢</button>
-          <button>⟲</button>
-          <button>⋯</button>
+          <span>Canvas</span>
         </div>
-        <div class="preview-canvas">
-          <div class="preview-placeholder">
-            <p>Preview placeholder</p>
-            <span>This component requires its full app context to render.</span>
+        <div class="preview-canvas" [ngSwitch]="selected.preview">
+          <div *ngSwitchCase="'button'" class="button-preview">
+            <button class="btn-entity medium primary">Primary</button>
+            <button class="btn-entity medium neutral">Neutral</button>
+            <button class="btn-entity medium subtle">Subtle</button>
+          </div>
+          <div *ngSwitchCase="'input'" class="input-preview">
+            <label>
+              <span>Email</span>
+              <input class="form-input" placeholder="you@company.com" />
+            </label>
+          </div>
+          <div *ngSwitchCase="'search'" class="search-preview">
+            <span>⌕</span>
+            <input placeholder="Find items" />
           </div>
         </div>
       </div>
 
-      <div class="story-tabs">
-        <button [class.active]="activeTab === 'controls'" (click)="activeTab = 'controls'">Controls</button>
-        <button [class.active]="activeTab === 'actions'" (click)="activeTab = 'actions'">Actions</button>
-        <button [class.active]="activeTab === 'interactions'" (click)="activeTab = 'interactions'">
-          Interactions
-        </button>
-        <button [class.active]="activeTab === 'docs'" (click)="activeTab = 'docs'">Docs</button>
-      </div>
-
-      <div class="controls" *ngIf="activeTab === 'controls'">
-        <div class="controls-table">
-          <div class="controls-row header">
-            <span>Name</span>
-            <span>Type</span>
-            <span>Default</span>
-            <span>Control</span>
-          </div>
-          <ng-container *ngIf="hasControls; else emptyControls">
-            <div class="controls-row" *ngFor="let control of controls">
-              <span class="name">{{ control.name }}</span>
-              <span class="desc">{{ control.type }}</span>
-              <span class="default">{{ control.defaultValue }}</span>
-              <span class="control">
-                <button class="pill neutral">Set value</button>
-              </span>
-            </div>
-          </ng-container>
+      <div class="story-controls">
+        <div class="controls-header">
+          <span>Name</span>
+          <span>Description</span>
+          <span>Type</span>
+          <span>Control</span>
         </div>
-        <ng-template #emptyControls>
-          <div class="controls-empty">No inputs detected for this component.</div>
-        </ng-template>
-      </div>
-
-      <div class="panel-placeholder" *ngIf="activeTab !== 'controls'">
-        <p>Content for {{ activeTab }} will appear here.</p>
+        <div class="controls-row" *ngFor="let control of selected.controls">
+          <span class="name">{{ control.name }}</span>
+          <span class="desc">{{ control.description }}</span>
+          <span class="type">{{ control.type }}</span>
+          <span class="control">
+            <ng-container [ngSwitch]="control.control">
+              <select *ngSwitchCase="'select'">
+                <option *ngFor="let option of control.options">{{ option }}</option>
+              </select>
+              <div *ngSwitchCase="'boolean'" class="toggle">
+                <button type="button">False</button>
+                <button type="button">True</button>
+              </div>
+              <input *ngSwitchCase="'text'" type="text" placeholder="value" />
+            </ng-container>
+          </span>
+        </div>
       </div>
 
       <div class="snippet">
-        <p class="eyebrow">Template Snippet</p>
-        <pre [textContent]="selectedComponent.snippet || 'template unavailable'"></pre>
+        <div class="snippet-header">
+          <p class="eyebrow">Snippet</p>
+          <button class="ghost" type="button" (click)="copySnippet(selected)">Copy</button>
+        </div>
+        <pre [textContent]="selected.snippet"></pre>
       </div>
     </section>
-  </section>
+  </div>
+
+  <div class="components-toast" *ngIf="toastMessage">
+    <span>{{ toastMessage }}</span>
+  </div>
 </div>

@@ -1,66 +1,472 @@
 <div class="tokens">
   <header class="page-header">
-    <p class="eyebrow">Design tokens</p>
-    <h1>Core foundations</h1>
-    <p class="subheading">These values are pulled from the WCR token system to keep visuals consistent.</p>
+    <div>
+      <p class="eyebrow">Design tokens</p>
+      <h1>Core foundations</h1>
+      <p class="subheading">These values are pulled from the WCR token system to keep visuals consistent.</p>
+    </div>
+    <div class="token-stats">
+      <div class="stat">
+        <p class="label">Total tokens</p>
+        <h3>{{ totalTokens }}</h3>
+      </div>
+    </div>
   </header>
 
-  <section class="panel">
+  <div class="tokens-toolbar">
+    <label class="search-input">
+      <span>⌕</span>
+      <input [(ngModel)]="searchQuery" placeholder="Search tokens, values, descriptions" />
+    </label>
+
+    <div class="filters">
+      <button
+        *ngFor="let category of categories"
+        type="button"
+        class="filter-chip"
+        [class.active]="activeCategory === category.id"
+        (click)="activeCategory = category.id"
+      >
+        {{ category.label }}
+      </button>
+    </div>
+
+    <div class="toolbar-actions">
+      <div class="view-toggle">
+        <button type="button" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'">Grid</button>
+        <button type="button" [class.active]="viewMode === 'table'" (click)="viewMode = 'table'">Table</button>
+      </div>
+      <button class="primary-btn" type="button" (click)="downloadTokens()">Download JSON</button>
+    </div>
+  </div>
+
+  <section class="panel" *ngIf="showSection('colors')">
     <header>
       <h3>Colors</h3>
-      <span class="badge">12 tokens</span>
+      <span class="badge">{{ filteredColors().length }} tokens</span>
     </header>
     <div class="swatches">
-      <div class="swatch" *ngFor="let color of colors">
+      <div class="swatch" *ngFor="let color of filteredColors()">
         <span class="swatch__chip" [style.background]="color.value"></span>
-        <div>
+        <div class="swatch__meta">
           <p>{{ color.name }}</p>
           <span>{{ color.value }}</span>
+          <span class="muted" *ngIf="color.description">{{ color.description }}</span>
+        </div>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(color.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(color.name, color.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="grid">
-    <article class="panel">
-      <header>
-        <h3>Spacing scale</h3>
-      </header>
-      <div class="scale">
-        <div class="scale__row" *ngFor="let item of spacing">
-          <span>{{ item.name }}</span>
+  <section class="panel" *ngIf="showSection('spacing')">
+    <header>
+      <h3>Spacing scale</h3>
+      <span class="badge">{{ filteredSpacing().length }} tokens</span>
+    </header>
+    <div *ngIf="viewMode === 'grid'" class="token-grid">
+      <div class="token-card" *ngFor="let item of filteredSpacing()">
+        <div class="token-card__header">
+          <p>{{ item.name }}</p>
+          <span>{{ item.value }}</span>
+        </div>
+        <div class="scale-preview">
           <div class="scale__bar" [style.width]="item.value"></div>
-          <span class="muted">{{ item.value }}</span>
+        </div>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
       </div>
-    </article>
-
-    <article class="panel">
-      <header>
-        <h3>Radius</h3>
-      </header>
-      <div class="scale">
-        <div class="scale__row" *ngFor="let item of radius">
-          <span>{{ item.name }}</span>
-          <div class="radius__sample" [style.border-radius]="item.value"></div>
-          <span class="muted">{{ item.value }}</span>
+    </div>
+    <div *ngIf="viewMode === 'table'" class="token-table">
+      <div class="token-row token-row--header">
+        <span>Name</span>
+        <span>Preview</span>
+        <span>Value</span>
+        <span>Actions</span>
+      </div>
+      <div class="token-row" *ngFor="let item of filteredSpacing()">
+        <span>{{ item.name }}</span>
+        <div class="scale__bar" [style.width]="item.value"></div>
+        <span class="muted">{{ item.value }}</span>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
       </div>
-    </article>
-
-    <article class="panel">
-      <header>
-        <h3>Typography</h3>
-      </header>
-      <div class="typography">
-        <h1>Heading XL</h1>
-        <h2>Heading L</h2>
-        <h3>Heading M</h3>
-        <p>Body text uses a comfortable line-height for long reading sessions.</p>
-        <p class="muted">Caption / metadata</p>
-      </div>
-    </article>
+    </div>
   </section>
+
+  <section class="panel" *ngIf="showSection('radius')">
+    <header>
+      <h3>Radius</h3>
+      <span class="badge">{{ filteredRadius().length }} tokens</span>
+    </header>
+    <div *ngIf="viewMode === 'grid'" class="token-grid">
+      <div class="token-card" *ngFor="let item of filteredRadius()">
+        <div class="token-card__header">
+          <p>{{ item.name }}</p>
+          <span>{{ item.value }}</span>
+        </div>
+        <div class="radius__sample" [style.border-radius]="item.value"></div>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="viewMode === 'table'" class="token-table">
+      <div class="token-row token-row--header">
+        <span>Name</span>
+        <span>Preview</span>
+        <span>Value</span>
+        <span>Actions</span>
+      </div>
+      <div class="token-row" *ngFor="let item of filteredRadius()">
+        <span>{{ item.name }}</span>
+        <div class="radius__sample" [style.border-radius]="item.value"></div>
+        <span class="muted">{{ item.value }}</span>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" *ngIf="showSection('typography')">
+    <header>
+      <h3>Typography</h3>
+      <span class="badge">{{ filteredTypography().length }} tokens</span>
+    </header>
+    <div *ngIf="viewMode === 'grid'" class="token-grid">
+      <div class="token-card" *ngFor="let item of filteredTypography()">
+        <div class="token-card__header">
+          <p>{{ item.name }}</p>
+          <span>{{ item.size }}</span>
+        </div>
+        <div class="typography-preview" [style.fontSize]="item.size" [style.fontWeight]="item.weight" [style.lineHeight]="item.lineHeight" [style.letterSpacing]="item.letterSpacing">
+          The quick brown fox
+        </div>
+        <div class="token-meta">
+          <span>Weight {{ item.weight }}</span>
+          <span>Line {{ item.lineHeight }}</span>
+          <span *ngIf="item.letterSpacing">Tracking {{ item.letterSpacing }}</span>
+        </div>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.size)" aria-label="Copy size">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.size)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="viewMode === 'table'" class="token-table">
+      <div class="token-row token-row--header">
+        <span>Name</span>
+        <span>Preview</span>
+        <span>Value</span>
+        <span>Actions</span>
+      </div>
+      <div class="token-row" *ngFor="let item of filteredTypography()">
+        <span>{{ item.name }}</span>
+        <div class="typography-preview" [style.fontSize]="item.size" [style.fontWeight]="item.weight" [style.lineHeight]="item.lineHeight" [style.letterSpacing]="item.letterSpacing">
+          The quick brown fox
+        </div>
+        <span class="muted">{{ item.size }} / {{ item.weight }}</span>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.size)" aria-label="Copy size">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.size)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" *ngIf="showSection('shadows')">
+    <header>
+      <h3>Shadows</h3>
+      <span class="badge">{{ filteredShadows().length }} tokens</span>
+    </header>
+    <div *ngIf="viewMode === 'grid'" class="token-grid">
+      <div class="token-card" *ngFor="let item of filteredShadows()">
+        <div class="token-card__header">
+          <p>{{ item.name }}</p>
+          <span>{{ item.value }}</span>
+        </div>
+        <div class="shadow-sample" [style.boxShadow]="item.value"></div>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="viewMode === 'table'" class="token-table">
+      <div class="token-row token-row--header">
+        <span>Name</span>
+        <span>Preview</span>
+        <span>Value</span>
+        <span>Actions</span>
+      </div>
+      <div class="token-row" *ngFor="let item of filteredShadows()">
+        <span>{{ item.name }}</span>
+        <div class="shadow-sample" [style.boxShadow]="item.value"></div>
+        <span class="muted">{{ item.value }}</span>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" *ngIf="showSection('opacity')">
+    <header>
+      <h3>Opacity</h3>
+      <span class="badge">{{ filteredOpacity().length }} tokens</span>
+    </header>
+    <div *ngIf="viewMode === 'grid'" class="token-grid">
+      <div class="token-card" *ngFor="let item of filteredOpacity()">
+        <div class="token-card__header">
+          <p>{{ item.name }}</p>
+          <span>{{ item.value }}</span>
+        </div>
+        <div class="opacity-sample" [style.opacity]="item.value"></div>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="viewMode === 'table'" class="token-table">
+      <div class="token-row token-row--header">
+        <span>Name</span>
+        <span>Preview</span>
+        <span>Value</span>
+        <span>Actions</span>
+      </div>
+      <div class="token-row" *ngFor="let item of filteredOpacity()">
+        <span>{{ item.name }}</span>
+        <div class="opacity-sample" [style.opacity]="item.value"></div>
+        <span class="muted">{{ item.value }}</span>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" *ngIf="showSection('borders')">
+    <header>
+      <h3>Borders</h3>
+      <span class="badge">{{ filteredBorders().length }} tokens</span>
+    </header>
+    <div *ngIf="viewMode === 'grid'" class="token-grid">
+      <div class="token-card" *ngFor="let item of filteredBorders()">
+        <div class="token-card__header">
+          <p>{{ item.name }}</p>
+          <span>{{ item.value }}</span>
+        </div>
+        <div class="border-sample" [style.border]="item.value"></div>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="viewMode === 'table'" class="token-table">
+      <div class="token-row token-row--header">
+        <span>Name</span>
+        <span>Preview</span>
+        <span>Value</span>
+        <span>Actions</span>
+      </div>
+      <div class="token-row" *ngFor="let item of filteredBorders()">
+        <span>{{ item.name }}</span>
+        <div class="border-sample" [style.border]="item.value"></div>
+        <span class="muted">{{ item.value }}</span>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value)" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value)" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" *ngIf="showSection('zindex')">
+    <header>
+      <h3>Z-index</h3>
+      <span class="badge">{{ filteredZIndex().length }} tokens</span>
+    </header>
+    <div *ngIf="viewMode === 'grid'" class="token-grid">
+      <div class="token-card" *ngFor="let item of filteredZIndex()">
+        <div class="token-card__header">
+          <p>{{ item.name }}</p>
+          <span>{{ item.value }}</span>
+        </div>
+        <div class="zindex-sample">{{ item.value }}</div>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value.toString())" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value.toString())" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="viewMode === 'table'" class="token-table">
+      <div class="token-row token-row--header">
+        <span>Name</span>
+        <span>Preview</span>
+        <span>Value</span>
+        <span>Actions</span>
+      </div>
+      <div class="token-row" *ngFor="let item of filteredZIndex()">
+        <span>{{ item.name }}</span>
+        <div class="zindex-sample">{{ item.value }}</div>
+        <span class="muted">{{ item.value }}</span>
+        <div class="token-actions">
+          <button class="icon-btn" type="button" (click)="copyTokenValue(item.value.toString())" aria-label="Copy value">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="4" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" (click)="copyTokenCss(item.name, item.value.toString())" aria-label="Copy CSS variable">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="tokens-toast" *ngIf="toastMessage">
+    <span>{{ toastMessage }}</span>
+  </div>
 </div>
-
-

@@ -10,7 +10,29 @@
 
     <div class="sidebar-search">
       <span>⌕</span>
-      <input placeholder="Find components" />
+      <input
+        [(ngModel)]="navSearchQuery"
+        placeholder="Find components"
+        (keydown.enter)="navigateFirstMatch()"
+      />
+      <button
+        class="sidebar-search__clear"
+        type="button"
+        *ngIf="navSearchQuery"
+        (click)="clearNavSearch()"
+        aria-label="Clear search"
+      >
+        ×
+      </button>
+      <div class="sidebar-search__results" *ngIf="filteredNavItems.length">
+        <button
+          type="button"
+          *ngFor="let item of filteredNavItems"
+          (click)="navigateToPath(item.path)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
     </div>
 
     <nav class="nav">
@@ -30,9 +52,12 @@
   <main class="content">
     <header class="topbar">
       <div class="toolbar">
-        <button class="toolbar-btn">⚙</button>
-        <button class="toolbar-btn">⟲</button>
-        <button class="toolbar-btn">⋯</button>
+        <button class="toolbar-btn" type="button" (click)="goToTokens()" aria-label="Open tokens">
+          ⚙
+        </button>
+        <button class="toolbar-btn" type="button" (click)="refreshPage()" aria-label="Refresh page">
+          ⟲
+        </button>
       </div>
     </header>
 
