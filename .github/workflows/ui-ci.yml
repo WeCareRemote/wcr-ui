@@ -176,7 +176,8 @@ jobs:
             sleep 3
           done
           if [ "${{ github.event.inputs.environment }}" != "prod" ]; then
-            docker image prune -a -f
+            # Cleanup is best-effort only; do not block deployment on long prune operations.
+            timeout 180s docker image prune -a -f || true
           fi
           EOF
 
