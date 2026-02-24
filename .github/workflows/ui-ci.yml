@@ -1,0 +1,180 @@
+name: "UI CI BUILD"
+run-name: >
+  ${{ github.event_name == 'workflow_dispatch'
+      && format('Build and Deploy UI {0} to {1} environment > {2}', github.event.inputs.ui_tag, github.event.inputs.environment, github.event.inputs.cloud)
+      || format('Build and Deploy UI {0} to {1} environment', github.event.inputs.ui_tag, github.ref_name == 'master' && 'prod' || 'dev') }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: Type environment
+        required: true
+        default: dev
+        options:
+          - dev
+          - prod
+      ui_tag:
+        type: string
+        description: Type ui tag
+        required: true
+        default: latest
+      cloud:
+        type: choice
+        description: Type cloud
+        required: true
+        options:
+          - aws
+          - azure
+      build_only:
+        type: boolean
+        description: Type build only
+        required: true
+        default: false
+
+env:
+  APPLICATION: "ui"
+  APP_PATH: /opt/greyt
+  ECR_URL: "${{ secrets.ACCOUNT_ID }}.dkr.ecr.eu-central-1.amazonaws.com"
+  ACR_URL: "${{ secrets.AZURE_ACR_NAME }}.azurecr.io"
+  CONTAINER_REGISTRY: "ecr-ui"
+  DOCKER_WORKDIR: "."
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AWS login
+        if: github.event.inputs.cloud == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.SECRET_KEY }}
+          aws-region: eu-central-1
+
+      - name: ECR login
+        if: github.event.inputs.cloud == 'aws'
+        run: |
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin ${{ env.ECR_URL }}
+
+      - name: ACR login
+        if: github.event.inputs.cloud == 'azure'
+        run: |
+          echo "${{ secrets.AZURE_ACR_PASSWORD }}" | docker login ${{ env.ACR_URL }} --username ${{ secrets.AZURE_ACR_USERNAME }} --password-stdin
+
+      - name: Build and push
+        run: |
+          docker build -f ${{ env.DOCKER_WORKDIR }}/Dockerfile --tag ${{ env.APPLICATION }}:${{ github.event.inputs.ui_tag || 'latest'}} .
+          docker tag ${{ env.APPLICATION }}:${{ github.event.inputs.ui_tag || 'latest'}} ${{ (github.event.inputs.cloud == 'azure' && env.ACR_URL) || (github.event.inputs.cloud == 'aws' && env.ECR_URL) }}/${{ env.CONTAINER_REGISTRY }}:${{ github.event.inputs.ui_tag || 'latest'}}
+          docker push ${{ (github.event.inputs.cloud == 'azure' && env.ACR_URL) || (github.event.inputs.cloud == 'aws' && env.ECR_URL) }}/${{ env.CONTAINER_REGISTRY }}:${{ github.event.inputs.ui_tag || 'latest'}}
+
+  deploy:
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_only != 'true' }}
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ssh
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y openssh-client
+
+      - name: Select SSH target
+        run: |
+          write_ssh_key() {
+            echo "SSH_KEY<<EOF" >> "$GITHUB_ENV"
+            echo "$1" >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
+          }
+          if [ "${{ github.event.inputs.cloud }}" = "azure" ]; then
+            if [ -z "${{ secrets.AZURE_ACR_NAME }}" ]; then
+              echo "Missing AZURE_ACR_NAME secret"
+              exit 1
+            fi
+            echo "IMAGE=${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.CONTAINER_REGISTRY }}:${{ github.event.inputs.ui_tag || 'latest'}}" >> "$GITHUB_ENV"
+          else
+            if [ -z "${{ secrets.ACCOUNT_ID }}" ]; then
+              echo "Missing ACCOUNT_ID secret"
+              exit 1
+            fi
+            echo "IMAGE=${{ secrets.ACCOUNT_ID }}.dkr.ecr.eu-central-1.amazonaws.com/${{ env.CONTAINER_REGISTRY }}:${{ github.event.inputs.ui_tag || 'latest'}}" >> "$GITHUB_ENV"
+          fi
+
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            if [ "${{ github.event.inputs.cloud }}" = "aws" ]; then
+              echo "SSH_IP=${{ secrets.AWS_SSH_IP_PROD }}" >> "$GITHUB_ENV"
+              echo "SSH_USER=${{ secrets.AWS_SSH_USER_PROD }}" >> "$GITHUB_ENV"
+              write_ssh_key "${{ secrets.AWS_SSH_KEY_PROD }}"
+            else
+              echo "SSH_IP=${{ secrets.AZURE_SSH_IP_PROD }}" >> "$GITHUB_ENV"
+              echo "SSH_USER=${{ secrets.AZURE_SSH_USER_PROD }}" >> "$GITHUB_ENV"
+              write_ssh_key "${{ secrets.AZURE_SSH_KEY_PROD }}"
+            fi
+          else
+            if [ "${{ github.event.inputs.cloud }}" = "aws" ]; then
+              echo "SSH_IP=${{ secrets.AWS_SSH_IP }}" >> "$GITHUB_ENV"
+              echo "SSH_USER=${{ secrets.AWS_SSH_USER }}" >> "$GITHUB_ENV"
+              write_ssh_key "${{ secrets.AWS_SSH_KEY }}"
+            else
+              echo "SSH_IP=${{ secrets.AZURE_SSH_IP }}" >> "$GITHUB_ENV"
+              echo "SSH_USER=${{ secrets.AZURE_SSH_USER }}" >> "$GITHUB_ENV"
+              write_ssh_key "${{ secrets.AZURE_SSH_KEY }}"
+            fi
+          fi
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan ${{ env.SSH_IP }} >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy application
+        run: |
+          eval $(ssh-agent -s)
+          echo "${{ env.SSH_KEY }}" | tr -d '\r' | ssh-add -
+          ssh ${{ env.SSH_USER }}@${{ env.SSH_IP }} <<EOF
+          cd ${{ env.APP_PATH }}
+          set -Eeuo pipefail
+          echo "Logging in to ${{ github.event.inputs.cloud }}"
+          if [ "${{ github.event.inputs.cloud }}" = "aws" ]; then
+            aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin ${{ env.ECR_URL }}
+          elif [ "${{ github.event.inputs.cloud }}" = "azure" ]; then
+            echo "${{ secrets.AZURE_ACR_PASSWORD }}" | docker login ${{ env.ACR_URL }} --username ${{ secrets.AZURE_ACR_USERNAME }} --password-stdin
+          else
+            echo "Invalid cloud"
+            exit 1
+          fi
+          IMAGE="$(echo "$IMAGE" | tr -d '\r\n')"
+          if [ -z "$IMAGE" ] || [[ "$IMAGE" == /* ]] || [[ "$IMAGE" == .*/* ]]; then
+            echo "Invalid image reference: '$IMAGE'"
+            exit 1
+          fi
+          docker stop ui || true
+          docker rm ui || true
+          docker images --filter=reference="${{ (github.event.inputs.cloud == 'azure' && env.ACR_URL) || (github.event.inputs.cloud == 'aws' && env.ECR_URL) }}/${{ env.CONTAINER_REGISTRY }}:*" --quiet | xargs -r docker rmi
+          if grep -q '^UI=' .env; then
+            sed -i "s|^UI=.*|UI=${IMAGE}|g" .env
+          else
+            echo "UI=${IMAGE}" >> .env
+          fi
+          docker pull "${IMAGE}"
+          docker run -d \
+            --name ui \
+            --restart always \
+            -p 4201:80 \
+            "${IMAGE}"
+          until [ "\$(docker inspect -f '{{.State.Running}}' ui)" == "true" ]; do
+            echo "Waiting for ui to start..."
+            sleep 3
+          done
+          if [ "${{ github.event.inputs.environment }}" != "prod" ]; then
+            docker image prune -a -f
+          fi
+          EOF
+
