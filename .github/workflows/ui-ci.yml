@@ -164,9 +164,11 @@ jobs:
             echo "UI=${IMAGE}" >> .env
           fi
           docker pull "${IMAGE}"
+          docker network create greyt_default >/dev/null 2>&1 || true
           docker run -d \
             --name ui \
             --restart always \
+            --network greyt_default \
             -p 4201:80 \
             "${IMAGE}"
           until [ "\$(docker inspect -f '{{.State.Running}}' ui)" == "true" ]; do
